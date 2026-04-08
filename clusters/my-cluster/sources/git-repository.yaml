@@ -1,0 +1,11 @@
+---
+apiVersion: source.toolkit.fluxcd.io/v1
+kind: GitRepository
+metadata:
+  name: fluxv2-demo-app
+  namespace: flux-system
+spec:
+  interval: 1m
+  url: ${GIT_REPO_URL}   # replaced by bootstrap script
+  ref:
+    branch: main

@@ -1,0 +1,44 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: whack-a-pod
+  namespace: whack-a-pod
+  labels:
+    app: whack-a-pod
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: whack-a-pod
+  template:
+    metadata:
+      labels:
+        app: whack-a-pod
+    spec:
+      containers:
+        - name: whack-a-pod
+          image: ${ACR_NAME}.azurecr.io/whack-a-pod:1.0.0  # replaced during setup
+          ports:
+            - containerPort: 8080
+          env:
+            - name: APP_VERSION
+              value: "1.0.0"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /healthz
+              port: 8080
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi

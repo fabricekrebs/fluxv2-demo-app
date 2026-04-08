@@ -1,0 +1,11 @@
+{
+  "name": "fluxv2-demo-app",
+  "version": "1.0.0",
+  "description": "Whack-a-Pod! A Kubernetes-themed game deployed via Flux v2 on AKS",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "author": "",
+  "license": "MIT"
+}
