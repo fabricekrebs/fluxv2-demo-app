@@ -1,38 +1,39 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: whack-a-pod
-  namespace: whack-a-pod
+  name: podinfo
+  namespace: podinfo
   labels:
-    app: whack-a-pod
+    app: podinfo
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: whack-a-pod
+      app: podinfo
   template:
     metadata:
       labels:
-        app: whack-a-pod
+        app: podinfo
     spec:
       containers:
-        - name: whack-a-pod
-          image: ${ACR_NAME}.azurecr.io/whack-a-pod:1.0.0  # replaced during setup
+        - name: podinfo
+          image: ghcr.io/stefanprodan/podinfo:6.7.1
           ports:
-            - containerPort: 8080
+            - containerPort: 9898
+              name: http
           env:
-            - name: APP_VERSION
-              value: "1.0.0"
+            - name: PODINFO_UI_MESSAGE
+              value: "Deployed with Flux v2 on AKS!"
           livenessProbe:
             httpGet:
               path: /healthz
-              port: 8080
+              port: 9898
             initialDelaySeconds: 5
             periodSeconds: 10
           readinessProbe:
             httpGet:
-              path: /healthz
-              port: 8080
+              path: /readyz
+              port: 9898
             initialDelaySeconds: 3
             periodSeconds: 5
           resources:

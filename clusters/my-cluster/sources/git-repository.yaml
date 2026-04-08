@@ -6,6 +6,6 @@ metadata:
   namespace: flux-system
 spec:
   interval: 1m
-  url: ${GIT_REPO_URL}   # replaced by bootstrap script
+  url: https://github.com/fabricekrebs/fluxv2-demo-app
   ref:
     branch: main

@@ -2,7 +2,7 @@
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: whack-a-pod-staging
+  name: podinfo-staging
   namespace: flux-system
 spec:
   interval: 5m
@@ -11,10 +11,10 @@ spec:
   sourceRef:
     kind: GitRepository
     name: fluxv2-demo-app
-  targetNamespace: whack-a-pod
+  targetNamespace: podinfo
   healthChecks:
     - apiVersion: apps/v1
       kind: Deployment
-      name: whack-a-pod
-      namespace: whack-a-pod
+      name: podinfo
+      namespace: podinfo
   timeout: 2m
