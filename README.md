@@ -1,13 +1,13 @@
 # Flux v2 + AKS GitOps Demo
 
-Deploy [podinfo](https://github.com/stefanprodan/podinfo) to AKS using **Flux v2** GitOps — out of the box, no image build required. The app image (`ghcr.io/stefanprodan/podinfo`) is publicly available.
+Deploy [podinfo](https://github.com/stefanprodan/podinfo) to AKS using **Flux v2** GitOps — out of the box, no image build required. Just point your AKS cluster's GitOps configuration at this repo.
 
 ## Architecture
 
 ```
 GitHub Repo (this repo)
   │
-  │  Flux v2 watches for changes (every 1m)
+  │  Flux v2 watches for changes
   ▼
 ┌──────────────┐     ┌─────────────────────┐
 │  Flux v2     │────▶│  AKS Cluster        │
@@ -41,45 +41,101 @@ Image: ghcr.io/stefanprodan/podinfo (public, no ACR needed)
 │       └── apps/
 │           ├── staging.yaml          # Flux Kustomization (staging)
 │           └── production.yaml       # Flux Kustomization (production, depends on staging)
-├── setup.sh                      # One-command AKS + Flux provisioning
-└── cleanup.sh                    # Tear everything down
+└── setup.sh                      # Apply Flux resources to your cluster
 ```
 
 ## Prerequisites
 
-- [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli)
-- [kubectl](https://kubernetes.io/docs/tasks/tools/)
-- [Flux CLI v2](https://fluxcd.io/flux/installation/#install-the-flux-cli)
-- A GitHub account with a [Personal Access Token](https://github.com/settings/tokens) (repo scope)
+- An AKS cluster with the **GitOps (Flux v2)** extension enabled
+- [Azure CLI](https://learn.microsoft.com/cli/azure/install-azure-cli) with the `k8s-configuration` extension
+- `kubectl` configured to point at your cluster
 
-## Quick Start
+## Azure GitOps Configuration
+
+The recommended way is to configure GitOps directly on your AKS cluster using the Azure Flux extension. This tells Flux on your cluster to watch this repo and deploy the application.
+
+### Option 1: Azure CLI
+
+Create a Flux configuration on your AKS cluster pointing to this repository:
 
 ```bash
-# 1. Fork/clone this repo
-git clone https://github.com/fabricekrebs/fluxv2-demo-app.git
-cd fluxv2-demo-app
+# Enable the GitOps extension on your AKS cluster (if not already done)
+az k8s-configuration flux create \
+  --resource-group <your-resource-group> \
+  --cluster-name <your-aks-cluster> \
+  --cluster-type managedClusters \
+  --name podinfo-demo \
+  --namespace flux-system \
+  --scope cluster \
+  --url https://github.com/fabricekrebs/fluxv2-demo-app \
+  --branch main \
+  --kustomization name=staging path=./k8s/overlays/staging prune=true sync_interval=5m \
+  --kustomization name=production path=./k8s/overlays/production prune=true sync_interval=5m depends_on=staging
+```
 
-# 2. Log in to Azure
-az login
+| Parameter        | Value                                                      |
+|------------------|------------------------------------------------------------|
+| **Repository URL** | `https://github.com/fabricekrebs/fluxv2-demo-app`        |
+| **Branch**         | `main`                                                    |
+| **Scope**          | `cluster`                                                 |
+| **Kustomization 1** | Name: `staging`, Path: `./k8s/overlays/staging`, Prune: `true` |
+| **Kustomization 2** | Name: `production`, Path: `./k8s/overlays/production`, Prune: `true`, Depends on: `staging` |
 
-# 3. Set required env vars
-export GITHUB_TOKEN=ghp_your_pat_here
-export GITHUB_USER=your-github-username
+### Option 2: Azure Portal
 
-# 4. Run setup (creates AKS, bootstraps Flux — no image build needed!)
-./setup.sh
+1. Navigate to your **AKS cluster** in the Azure Portal.
+2. Go to **Settings → GitOps**.
+3. Click **+ Create** and fill in:
 
-# 5. Get the app URL
-kubectl get svc -n podinfo -w
-# Open the EXTERNAL-IP in your browser
+   | Field                 | Value                                                    |
+   |-----------------------|----------------------------------------------------------|
+   | Configuration name    | `podinfo-demo`                                           |
+   | Namespace             | `flux-system`                                            |
+   | Scope                 | Cluster                                                  |
+   | Repository URL        | `https://github.com/fabricekrebs/fluxv2-demo-app`        |
+   | Reference type        | Branch                                                   |
+   | Branch                | `main`                                                   |
+
+4. Add **two Kustomizations**:
+
+   **Kustomization 1 — Staging:**
+   | Field            | Value                       |
+   |------------------|-----------------------------|
+   | Instance name    | `staging`                   |
+   | Path             | `./k8s/overlays/staging`    |
+   | Sync interval    | `5m`                        |
+   | Prune            | Enabled                     |
+
+   **Kustomization 2 — Production:**
+   | Field            | Value                          |
+   |------------------|--------------------------------|
+   | Instance name    | `production`                   |
+   | Path             | `./k8s/overlays/production`    |
+   | Sync interval    | `5m`                           |
+   | Prune            | Enabled                        |
+   | Depends on       | `staging`                      |
+
+5. Click **Save**. Flux will begin reconciling immediately.
+
+### Verify the Deployment
+
+```bash
+# Check Flux status
+flux get kustomizations
+
+# Check the pods
+kubectl get pods -n podinfo
+
+# Get the external IP to access the app
+kubectl get svc -n podinfo
 ```
 
 ## How GitOps Works Here
 
 1. **You push a change** to `main` (e.g., bump image tag, change replicas, update env vars).
-2. **Flux detects the change** within ~1 minute (`interval: 1m` on the GitRepository).
+2. **Flux detects the change** within the sync interval.
 3. **Flux reconciles** the Kustomization, applying the new state to the cluster.
-4. **Staging deploys first** — production has `dependsOn: staging`, so it waits for staging to be healthy.
+4. **Staging deploys first** — production depends on staging, so it waits for staging to be healthy.
 
 ### Demo: Trigger a GitOps Deployment
 
@@ -114,7 +170,7 @@ flux logs
 kubectl get all -n podinfo
 kubectl logs -n podinfo -l app=podinfo
 
-# Force reconciliation (don't wait for interval)
+# Force reconciliation
 flux reconcile source git fluxv2-demo-app
 flux reconcile kustomization podinfo-staging
 
@@ -125,10 +181,15 @@ flux resume kustomization podinfo-production
 
 ## Cleanup
 
+Remove the Flux configuration from your AKS cluster:
+
 ```bash
-./cleanup.sh
-# or manually:
-az group delete --name fluxv2-demo-rg --yes --no-wait
+az k8s-configuration flux delete \
+  --resource-group <your-resource-group> \
+  --cluster-name <your-aks-cluster> \
+  --cluster-type managedClusters \
+  --name podinfo-demo \
+  --yes
 ```
 
 ## License
