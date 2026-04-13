@@ -1,22 +1,22 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: podinfo
-  namespace: podinfo
+  name: fluxv2-podinfo-demo
+  namespace: fluxv2-podinfo-demo
   labels:
-    app: podinfo
+    app: fluxv2-podinfo-demo
 spec:
   replicas: 2
   selector:
     matchLabels:
-      app: podinfo
+      app: fluxv2-podinfo-demo
   template:
     metadata:
       labels:
-        app: podinfo
+        app: fluxv2-podinfo-demo
     spec:
       containers:
-        - name: podinfo
+        - name: fluxv2-podinfo-demo
           image: ghcr.io/stefanprodan/podinfo:6.7.1
           ports:
             - containerPort: 9898

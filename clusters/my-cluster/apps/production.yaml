@@ -2,21 +2,19 @@
 apiVersion: kustomize.toolkit.fluxcd.io/v1
 kind: Kustomization
 metadata:
-  name: podinfo-production
+  name: fluxv2-podinfo-demo
   namespace: flux-system
 spec:
   interval: 5m
-  dependsOn:
-    - name: podinfo-staging
-  path: ./k8s/overlays/production
+  path: ./apps/fluxv2-podinfo-demo
   prune: true
   sourceRef:
     kind: GitRepository
     name: fluxv2-demo-app
-  targetNamespace: podinfo
+  targetNamespace: fluxv2-podinfo-demo
   healthChecks:
     - apiVersion: apps/v1
       kind: Deployment
-      name: podinfo
-      namespace: podinfo
+      name: fluxv2-podinfo-demo
+      namespace: fluxv2-podinfo-demo
   timeout: 2m

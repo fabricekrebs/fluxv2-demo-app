@@ -1,0 +1,45 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fluxv2-podinfo-demo
+  namespace: fluxv2-podinfo-demo
+  labels:
+    app: fluxv2-podinfo-demo
+spec:
+  replicas: 2
+  selector:
+    matchLabels:
+      app: fluxv2-podinfo-demo
+  template:
+    metadata:
+      labels:
+        app: fluxv2-podinfo-demo
+    spec:
+      containers:
+        - name: fluxv2-podinfo-demo
+          image: ghcr.io/stefanprodan/podinfo:6.7.1
+          ports:
+            - containerPort: 9898
+              name: http
+          env:
+            - name: PODINFO_UI_MESSAGE
+              value: "Deployed with Flux v2 on AKS!"
+          livenessProbe:
+            httpGet:
+              path: /healthz
+              port: 9898
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /readyz
+              port: 9898
+            initialDelaySeconds: 3
+            periodSeconds: 5
+          resources:
+            requests:
+              cpu: 50m
+              memory: 64Mi
+            limits:
+              cpu: 200m
+              memory: 128Mi

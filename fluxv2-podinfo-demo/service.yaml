@@ -1,14 +1,14 @@
 apiVersion: v1
 kind: Service
 metadata:
-  name: podinfo
-  namespace: podinfo
+  name: fluxv2-podinfo-demo
+  namespace: fluxv2-podinfo-demo
   labels:
-    app: podinfo
+    app: fluxv2-podinfo-demo
 spec:
   type: LoadBalancer
   selector:
-    app: podinfo
+    app: fluxv2-podinfo-demo
   ports:
     - port: 80
       targetPort: 9898

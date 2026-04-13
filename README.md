@@ -13,9 +13,9 @@ GitHub Repo (this repo)
 │  Flux v2     │────▶│  AKS Cluster        │
 │  (flux-system)│     │                     │
 └──────────────┘     │  ┌───────────────┐  │
-                     │  │ podinfo ns    │  │
-                     │  │  Deployment   │  │
-                     │  │  Service (LB) │  │
+                     │  │ fluxv2-podinfo-demo ns │  │
+                     │  │  Deployment            │  │
+                     │  │  Service (LB)          │  │
                      │  └───────────────┘  │
                      └─────────────────────┘
 
@@ -25,23 +25,18 @@ Image: ghcr.io/stefanprodan/podinfo (public, no ACR needed)
 ## Repo Structure
 
 ```
-├── k8s/
-│   ├── base/                     # Base Kubernetes manifests
-│   │   ├── kustomization.yaml
-│   │   ├── namespace.yaml
-│   │   ├── deployment.yaml
-│   │   └── service.yaml
-│   └── overlays/
-│       ├── staging/              # 1 replica
-│       └── production/           # 3 replicas
-├── clusters/
-│   └── my-cluster/
-│       ├── sources/
-│       │   └── git-repository.yaml   # Flux GitRepository source
-│       └── apps/
-│           ├── staging.yaml          # Flux Kustomization (staging)
-│           └── production.yaml       # Flux Kustomization (production, depends on staging)
-└── setup.sh                      # Apply Flux resources to your cluster
+├── apps/
+│   └── fluxv2-podinfo-demo/          # Kubernetes manifests
+│       ├── kustomization.yaml
+│       ├── namespace.yaml
+│       ├── deployment.yaml
+│       └── service.yaml
+└── clusters/
+    └── my-cluster/
+        ├── sources/
+        │   └── git-repository.yaml   # Flux GitRepository source
+        └── apps/
+            └── production.yaml       # Flux Kustomization
 ```
 
 ## Prerequisites
@@ -69,17 +64,15 @@ az k8s-configuration flux create \
   --scope cluster \
   --url https://github.com/fabricekrebs/fluxv2-demo-app \
   --branch main \
-  --kustomization name=staging path=./k8s/overlays/staging prune=true sync_interval=5m \
-  --kustomization name=production path=./k8s/overlays/production prune=true sync_interval=5m depends_on=staging
+  --kustomization name=fluxv2-podinfo-demo path=./apps/fluxv2-podinfo-demo prune=true sync_interval=5m
 ```
 
 | Parameter        | Value                                                      |
-|------------------|------------------------------------------------------------|
+|------------------|------------------------------------------------------------||
 | **Repository URL** | `https://github.com/fabricekrebs/fluxv2-demo-app`        |
 | **Branch**         | `main`                                                    |
 | **Scope**          | `cluster`                                                 |
-| **Kustomization 1** | Name: `staging`, Path: `./k8s/overlays/staging`, Prune: `true` |
-| **Kustomization 2** | Name: `production`, Path: `./k8s/overlays/production`, Prune: `true`, Depends on: `staging` |
+| **Kustomization**  | Name: `fluxv2-podinfo-demo`, Path: `./apps/fluxv2-podinfo-demo`, Prune: `true` |
 
 ### Option 2: Azure Portal
 
@@ -96,24 +89,14 @@ az k8s-configuration flux create \
    | Reference type        | Branch                                                   |
    | Branch                | `main`                                                   |
 
-4. Add **two Kustomizations**:
+4. Add a **Kustomization**:
 
-   **Kustomization 1 — Staging:**
    | Field            | Value                       |
-   |------------------|-----------------------------|
-   | Instance name    | `staging`                   |
-   | Path             | `./k8s/overlays/staging`    |
+   |------------------|-----------------------------| 
+   | Instance name    | `fluxv2-podinfo-demo`     |
+   | Path             | `./apps/fluxv2-podinfo-demo` |
    | Sync interval    | `5m`                        |
    | Prune            | Enabled                     |
-
-   **Kustomization 2 — Production:**
-   | Field            | Value                          |
-   |------------------|--------------------------------|
-   | Instance name    | `production`                   |
-   | Path             | `./k8s/overlays/production`    |
-   | Sync interval    | `5m`                           |
-   | Prune            | Enabled                        |
-   | Depends on       | `staging`                      |
 
 5. Click **Save**. Flux will begin reconciling immediately.
 
@@ -124,10 +107,10 @@ az k8s-configuration flux create \
 flux get kustomizations
 
 # Check the pods
-kubectl get pods -n podinfo
+kubectl get pods -n fluxv2-podinfo-demo
 
 # Get the external IP to access the app
-kubectl get svc -n podinfo
+kubectl get svc -n fluxv2-podinfo-demo
 ```
 
 ## How GitOps Works Here
@@ -135,13 +118,12 @@ kubectl get svc -n podinfo
 1. **You push a change** to `main` (e.g., bump image tag, change replicas, update env vars).
 2. **Flux detects the change** within the sync interval.
 3. **Flux reconciles** the Kustomization, applying the new state to the cluster.
-4. **Staging deploys first** — production depends on staging, so it waits for staging to be healthy.
 
 ### Demo: Trigger a GitOps Deployment
 
 ```bash
 # Change the UI message
-sed -i 's/Deployed with Flux v2 on AKS!/Hello from GitOps!/' k8s/base/deployment.yaml
+sed -i 's/Deployed with Flux v2 on AKS!/Hello from GitOps!/' apps/fluxv2-podinfo-demo/deployment.yaml
 git add -A && git commit -m "Update podinfo message" && git push
 
 # Watch Flux reconcile
@@ -152,7 +134,7 @@ flux get kustomizations --watch
 
 ```bash
 # Update the podinfo image tag
-sed -i 's|ghcr.io/stefanprodan/podinfo:6.7.1|ghcr.io/stefanprodan/podinfo:6.7.0|' k8s/base/deployment.yaml
+sed -i 's|ghcr.io/stefanprodan/podinfo:6.7.1|ghcr.io/stefanprodan/podinfo:6.7.0|' apps/fluxv2-podinfo-demo/deployment.yaml
 git add -A && git commit -m "Rollback to podinfo 6.7.0" && git push
 
 flux get kustomizations --watch
@@ -167,16 +149,16 @@ flux get sources git
 flux logs
 
 # App status
-kubectl get all -n podinfo
-kubectl logs -n podinfo -l app=podinfo
+kubectl get all -n fluxv2-podinfo-demo
+kubectl logs -n fluxv2-podinfo-demo -l app=fluxv2-podinfo-demo
 
 # Force reconciliation
 flux reconcile source git fluxv2-demo-app
-flux reconcile kustomization podinfo-staging
+flux reconcile kustomization fluxv2-podinfo-demo
 
 # Suspend/resume (pause GitOps)
-flux suspend kustomization podinfo-production
-flux resume kustomization podinfo-production
+flux suspend kustomization fluxv2-podinfo-demo
+flux resume kustomization fluxv2-podinfo-demo
 ```
 
 ## Cleanup
