@@ -26,11 +26,14 @@ Image: ghcr.io/stefanprodan/podinfo (public, no ACR needed)
 
 ```
 ├── apps/
-│   └── fluxv2-podinfo-demo/          # Kubernetes manifests
-│       ├── kustomization.yaml
-│       ├── namespace.yaml
-│       ├── deployment.yaml
-│       └── service.yaml
+│   ├── fluxv2-podinfo-demo/
+│   │   ├── base/                     # Shared manifests (neutral ingress host)
+│   │   ├── overlays/dev/             # Dev host override patch
+│   │   └── overlays/prod/            # Prod host override patch
+│   └── hello-world/
+│       ├── base/
+│       ├── overlays/dev/
+│       └── overlays/prod/
 └── clusters/
     └── my-cluster/
         ├── sources/
@@ -64,7 +67,7 @@ az k8s-configuration flux create \
   --scope cluster \
   --url https://github.com/fabricekrebs/fluxv2-demo-app \
   --branch main \
-  --kustomization name=fluxv2-podinfo-demo path=./apps/fluxv2-podinfo-demo prune=true sync_interval=5m
+  --kustomization name=fluxv2-podinfo-demo path=./apps/fluxv2-podinfo-demo/overlays/prod prune=true sync_interval=5m
 ```
 
 | Parameter        | Value                                                      |
@@ -72,7 +75,7 @@ az k8s-configuration flux create \
 | **Repository URL** | `https://github.com/fabricekrebs/fluxv2-demo-app`        |
 | **Branch**         | `main`                                                    |
 | **Scope**          | `cluster`                                                 |
-| **Kustomization**  | Name: `fluxv2-podinfo-demo`, Path: `./apps/fluxv2-podinfo-demo`, Prune: `true` |
+| **Kustomization**  | Name: `fluxv2-podinfo-demo`, Path: `./apps/fluxv2-podinfo-demo/overlays/prod`, Prune: `true` |
 
 ### Option 2: Azure Portal
 
@@ -94,11 +97,20 @@ az k8s-configuration flux create \
    | Field            | Value                       |
    |------------------|-----------------------------| 
    | Instance name    | `fluxv2-podinfo-demo`     |
-   | Path             | `./apps/fluxv2-podinfo-demo` |
+  | Path             | `./apps/fluxv2-podinfo-demo/overlays/prod` |
    | Sync interval    | `5m`                        |
    | Prune            | Enabled                     |
 
 5. Click **Save**. Flux will begin reconciling immediately.
+
+### Environment-specific overlays
+
+- Use `./apps/fluxv2-podinfo-demo/overlays/dev` for dev.
+- Use `./apps/fluxv2-podinfo-demo/overlays/prod` for prod.
+- Use `./apps/hello-world/overlays/dev` for dev.
+- Use `./apps/hello-world/overlays/prod` for prod.
+
+Each overlay patches only the Ingress host, so manual `kubectl edit ingress ...` changes are no longer needed and will not be lost to Flux reconciliation.
 
 ### Verify the Deployment
 

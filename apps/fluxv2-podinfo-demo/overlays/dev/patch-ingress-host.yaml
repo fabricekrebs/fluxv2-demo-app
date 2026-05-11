@@ -1,0 +1,8 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fluxv2-podinfo-demo
+  namespace: fluxv2-podinfo-demo
+spec:
+  rules:
+    - host: podinfo-dev.krfa-lab.com

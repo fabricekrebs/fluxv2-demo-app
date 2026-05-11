@@ -1,0 +1,17 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: fluxv2-podinfo-demo
+  namespace: fluxv2-podinfo-demo
+spec:
+  rules:
+    - host: podinfo.example.com
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: fluxv2-podinfo-demo
+                port:
+                  number: 9898
