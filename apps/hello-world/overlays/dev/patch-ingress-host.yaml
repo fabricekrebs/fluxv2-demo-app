@@ -1,8 +1,3 @@
-apiVersion: networking.k8s.io/v1
-kind: Ingress
-metadata:
-  name: hello-world
-  namespace: demo-hello-world-latest
-spec:
-  rules:
-    - host: hello-world-dev.krfa-lab.com
+- op: replace
+  path: /spec/rules/0/host
+  value: hello-world-dev.krfa-lab.com

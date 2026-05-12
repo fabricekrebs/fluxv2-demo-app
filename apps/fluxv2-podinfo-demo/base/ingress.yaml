@@ -4,6 +4,7 @@ metadata:
   name: fluxv2-podinfo-demo
   namespace: fluxv2-podinfo-demo
 spec:
+  ingressClassName: azure-application-gateway
   rules:
     - host: podinfo.example.com
       http:

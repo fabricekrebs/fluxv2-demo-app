@@ -4,6 +4,7 @@ metadata:
   name: hello-world
   namespace: demo-hello-world-latest
 spec:
+  ingressClassName: azure-application-gateway
   rules:
     - host: hello-world.example.com
       http:
